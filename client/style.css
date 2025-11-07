@@ -1,0 +1,44 @@
+#tools {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  border: 2px solid black;
+  border-radius: 7px;
+  padding: 6px 15px;
+  background: #ffffff;
+  font-family: "Brush Script MT", cursive;
+  position: absolute;
+  left: 50%;
+  top: 100px; 
+  transform: translateX(-50%);
+}
+
+#users{
+   font-size:x-large;
+  font-weight: bold;  
+  font-family: "Brush Script MT", cursive;  
+}
+
+#title {
+  display: block;
+  text-align: center;
+  padding: 5px;
+  font-size: 50px;
+  font-weight: bold;
+  color: #586add;
+  font-family: "Brush Script MT", cursive;
+}
+
+
+#canvas {
+  display: block;
+  margin: 70px auto 10px auto;
+  background: #f8f6f6;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  cursor: crosshair;
+  box-shadow: 0 4px 12px rgba(115, 101, 101, 0.15);
+  max-width: 90vw;
+  max-height: 80vh;
+}

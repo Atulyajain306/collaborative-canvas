@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="icon" type="image/x-icon" href="https://st2.depositphotos.com/8690276/12370/v/450/depositphotos_123700960-stock-illustration-flat-icon-in-black-and.jpg">
+  <title>Collaborative Canvas</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="topbar">
+    <div id="title">Collaborative Canvas</div>
+    <div id="tools">
+      <input type="color" id="color" value="#000000" />
+      <input type="range" id="size" min="1" max="50" value="4" />
+      <button id="brush">Brush</button>
+      <button id="eraser">Eraser</button>
+      <button id="undo">Undo</button>
+      <button id="redo">Redo</button>
+      <div id="users">Active Users: <span id="userList"></span></div>
+    </div>
+    
+  </div>
+
+  <canvas id="canvas"></canvas>
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
