@@ -46,7 +46,7 @@ server/*.log
 out/
 .sass-cache/
 
-package-local.json
+package-lock.json
 # Uploaded or generated assets
 uploads/
 public/uploads/
