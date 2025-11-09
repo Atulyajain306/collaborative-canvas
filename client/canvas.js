@@ -6,27 +6,30 @@ export class CanvasManager {
     this.sizeInput = document.getElementById("size");
     this.tool = "brush";
     this.isDrawing = false;
-    this.history = [];
-    this.redoStack = [];
     this.remoteCursors = {};
 
-    this.saveState();
+    
+    this.lastSaved = null;
   }
 
+  
   saveState() {
-    this.history.push(this.canvas.toDataURL());
-    if (this.history.length > 50) this.history.shift();
+    const dataURL = this.canvas.toDataURL();
+    
+    if (this.lastSaved !== dataURL) {
+      this.lastSaved = dataURL;
+      return dataURL;
+    }
+    return null;
   }
 
-  // ✅ FIXED: Accurate mouse position even when canvas is scaled
   getMousePos(e) {
     const rect = this.canvas.getBoundingClientRect();
     const scaleX = this.canvas.width / rect.width;
     const scaleY = this.canvas.height / rect.height;
-
     return {
       x: (e.clientX - rect.left) * scaleX,
-      y: (e.clientY - rect.top) * scaleY
+      y: (e.clientY - rect.top) * scaleY,
     };
   }
 
@@ -39,6 +42,8 @@ export class CanvasManager {
   }
 
   startLocalPath(pos) {
+    
+    this.saveState();
     this.isDrawing = true;
     this.ctx.beginPath();
     this.ctx.moveTo(pos.x, pos.y);
@@ -53,11 +58,10 @@ export class CanvasManager {
     if (this.isDrawing) {
       this.isDrawing = false;
       this.ctx.closePath();
-      this.saveState();
     }
   }
 
-  // Remote drawing
+  // Remote
   startRemotePath({ x, y, color, size, tool }) {
     this.applyCtx(tool, color, size);
     this.ctx.beginPath();
@@ -74,26 +78,15 @@ export class CanvasManager {
     this.ctx.closePath();
   }
 
-  undo() {
-    if (this.history.length <= 1) return;
-    this.redoStack.push(this.history.pop());
+  // Canvas state update
+  updateCanvasFromImage(dataURL) {
     const img = new Image();
-    img.src = this.history[this.history.length - 1];
+    img.src = dataURL;
     img.onload = () => {
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
       this.ctx.drawImage(img, 0, 0);
-    };
-  }
-
-  redo() {
-    if (this.redoStack.length === 0) return;
-    const redoState = this.redoStack.pop();
-    this.history.push(redoState);
-    const img = new Image();
-    img.src = redoState;
-    img.onload = () => {
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-      this.ctx.drawImage(img, 0, 0);
+      // Update our local "last saved" snapshot to match
+      this.lastSaved = this.canvas.toDataURL();
     };
   }
 

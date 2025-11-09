@@ -17,6 +17,11 @@ function getPos(e) {
 canvas.addEventListener("mousedown", (e) => {
   const pos = getPos(e);
   manager.applyCtx(manager.tool, manager.colorInput.value, manager.sizeInput.value);
+
+
+  const beforeState = manager.canvas.toDataURL();
+  socketClient.socket.emit("endPath", beforeState);
+
   manager.startLocalPath(pos);
   socketClient.emitStartPath({
     ...pos,
@@ -25,6 +30,7 @@ canvas.addEventListener("mousedown", (e) => {
     tool: manager.tool,
   });
 });
+
 
 canvas.addEventListener("mousemove", (e) => {
   socketClient.emitCursorMove({
@@ -45,16 +51,11 @@ canvas.addEventListener("mousemove", (e) => {
 
 canvas.addEventListener("mouseup", () => {
   manager.stopLocalDrawing();
-  socketClient.emitEndPath();
+  const snapshot = manager.canvas.toDataURL();
+  socketClient.emitEndPath(snapshot);
 });
 
 document.getElementById("brush").onclick = () => (manager.tool = "brush");
 document.getElementById("eraser").onclick = () => (manager.tool = "eraser");
-document.getElementById("undo").onclick = () => {
-  manager.undo();
-  socketClient.emitUndo();
-};
-document.getElementById("redo").onclick = () => {
-  manager.redo();
-  socketClient.emitRedo();
-};
+document.getElementById("undo").onclick = () => socketClient.emitUndo();
+document.getElementById("redo").onclick = () => socketClient.emitRedo();

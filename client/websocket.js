@@ -11,10 +11,23 @@ export class CanvasSocket {
     this.socket.on("startPath", (data) => this.manager.startRemotePath(data));
     this.socket.on("drawing", (data) => this.manager.drawRemote(data));
     this.socket.on("endPath", () => this.manager.endRemotePath());
-    this.socket.on("undo", () => this.manager.undo());
-    this.socket.on("redo", () => this.manager.redo());
-    this.socket.on("cursorMove", (data) => this.manager.updateRemoteCursor(data));
-    this.socket.on("removeCursor", (id) => this.manager.removeRemoteCursor(id));
+    this.socket.on("updateCanvas", (dataURL) =>
+      this.manager.updateCanvasFromImage(dataURL)
+    );
+    this.socket.on("syncCanvas", (dataURL) =>
+      this.manager.updateCanvasFromImage(dataURL)
+    );
+   this.socket.on("clearCanvas", () => {
+    this.manager.ctx.clearRect(0, 0, this.manager.canvas.width, this.manager.canvas.height);
+  this.manager.history = [];
+  this.manager.redoStack = [];
+});
+    this.socket.on("cursorMove", (data) =>
+      this.manager.updateRemoteCursor(data)
+    );
+    this.socket.on("removeCursor", (id) =>
+      this.manager.removeRemoteCursor(id)
+    );
   }
 
   emitStartPath(data) {
@@ -25,8 +38,8 @@ export class CanvasSocket {
     this.socket.emit("drawing", data);
   }
 
-  emitEndPath() {
-    this.socket.emit("endPath");
+  emitEndPath(dataURL) {
+    this.socket.emit("endPath", dataURL);
   }
 
   emitUndo() {
@@ -40,4 +53,9 @@ export class CanvasSocket {
   emitCursorMove(data) {
     this.socket.emit("cursorMove", data);
   }
+
+  emitSaveState(dataURL) {
+  this.socket.emit("saveState", dataURL);
+}
+
 }
