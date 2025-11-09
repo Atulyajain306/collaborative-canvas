@@ -47,13 +47,10 @@ out/
 .sass-cache/
 
 package-lock.json
+
 # Uploaded or generated assets
 uploads/
 public/uploads/
 client/uploads/
 
-# Optional: ignore generated images from canvas snapshots
-client/snapshots/
-*.png
-*.jpg
-*.jpeg
+
