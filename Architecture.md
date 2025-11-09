@@ -7,7 +7,7 @@ This document explains the internal design of the **Collaborative Canvas**, incl
 
 ## 🔄 Data Flow Diagram
 
-![Data Flow Diagram](./userflow.png)
+![Data Flow Diagram](userflow.png)
 
 - Each client emits drawing events (start, draw, stop).
 - Server relays events to all other connected sockets.
