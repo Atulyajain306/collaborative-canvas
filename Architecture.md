@@ -7,72 +7,91 @@ This document explains the internal design of the **Collaborative Canvas**, incl
 
 ## 🔄 Data Flow Diagram
 
+![Data Flow Diagram](./userflow.png)
+
 - Each client emits drawing events (start, draw, stop).
 - Server relays events to all other connected sockets.
 - Clients reconstruct paths using the received data.
 
----
 
-## 📡 WebSocket Protocol
-
-All communication occurs over **Socket.IO** channels.  
-Message schema (simplified):
-
-| Event | Direction | Payload |
-|--------|------------|----------|
-| `startDrawing` | Client → Server | `{ x, y, color, size, tool }` |
-| `drawing` | Client → Server | `{ x, y, color, size, tool }` |
-| `stopDrawing` | Client → Server | `null` |
-| `updateCanvas` | Server → All Clients | `{ dataURL }` |
-| `cursorMove` | Client ↔ Server | `{ id, x, y, color }` |
-| `undo`, `redo` | Client ↔ Server | `{ dataURL }` |
-| `disconnect` | Client → Server | `{ id }` |
-
-**Flow Summary:**
-- Local user draws → sends stroke segments to server.
-- Server rebroadcasts to all others.
-- Every client updates canvas incrementally.
+🧠 **Flow Summary:**
+1. User A draws on their canvas → emits `"drawing"` event with coordinates, color, size, and tool.
+2. The server receives this event and **broadcasts** it to all other connected users.
+3. Each receiving client (like User B) calls `drawRemote()` to replicate the exact stroke on their canvas.
 
 ---
 
-## 🕹️ Undo / Redo Strategy
+## 🔌 WebSocket Protocol
 
-- **Local State Stack:** Each client maintains a history stack of `dataURL` snapshots.
-- **Global Undo Broadcast:** When a user undoes, the current image state is sent to all connected clients.
-- **Fix for Eraser Bug:** Eraser operations now trigger a `saveState()` after path end, preventing full blank restore.
-- **Memory Optimization:** History stack is capped (e.g., 20 states) to prevent memory leaks.
+**Events Emitted by Client:**
+| Event | Description |
+|-------|--------------|
+| `startPath` | Begin a new path at given coordinates. |
+| `drawing` | Send coordinates, color, size, and tool info. |
+| `endPath` | End the path and push current state to history. |
+| `undo` | Request global undo action. |
+| `redo` | Request global redo action. |
+| `cursorMove` | Send live cursor position and color. |
+
+**Events Received by Client:**
+| Event | Description |
+|--------|-------------|
+| `startPath` | Begin drawing a path from another user. |
+| `drawing` | Continue drawing with given stroke data. |
+| `endPath` | Finish the remote drawing path. |
+| `updateCanvas` | Replace canvas with a new image (undo/redo). |
+| `syncCanvas` | Sync with the latest global state when joining. |
+| `clearCanvas` | Clear entire canvas (if history is empty). |
+| `cursorMove` | Show another user’s cursor in real time. |
+| `removeCursor` | Remove cursor when user disconnects. |
 
 ---
 
-## ⚙️ Performance Decisions
+## 🔄 Undo/Redo Strategy
 
-| Strategy | Reason |
-|-----------|--------|
-| **Canvas snapshots (toDataURL)** | Simplifies undo/redo with minimal state logic |
-| **Socket throttling** | Drawing points are sent at a limited rate to reduce bandwidth |
-| **Local rendering before sync** | Reduces latency and improves UX |
-| **`destination-out` for eraser** | More efficient than overlaying white strokes |
-| **Single canvas context** | Avoids unnecessary re-render layers |
+- The server maintains two **global stacks**:
+  - `globalHistory` → stores canvas snapshots (`dataURL`) after each completed stroke.
+  - `globalRedoStack` → stores undone states.
+
+**Undo Flow:**
+1. Last snapshot is popped from `globalHistory` and pushed to `globalRedoStack`.
+2. Server emits `"updateCanvas"` with the previous state or `"clearCanvas"` if empty.
+
+**Redo Flow:**
+1. Pop from `globalRedoStack`, push to `globalHistory`.
+2. Emit `"updateCanvas"` with that restored state.
+
+This ensures **synchronized undo/redo across all users**, regardless of who triggered it.
+
+---
+
+## ⚡ Performance Decisions
+
+- **Snapshots after strokes only:**  
+  Instead of saving per-pixel changes, the app stores a `canvas.toDataURL()` only when a stroke ends (`mouseup`).  
+  → Reduces network overhead and memory usage.
+
+- **Limited history (max 100):**  
+  Prevents excessive memory growth in long sessions.
+
+- **Global event broadcasting:**  
+  The server uses `socket.broadcast.emit()` to prevent redundant local updates.
+
+- **Lazy image reloading:**  
+  `updateCanvasFromImage()` clears and redraws using `<img>` to optimize rendering speed.
 
 ---
 
 ## 🤝 Conflict Resolution
 
-- **Last-Write Wins:** When two users draw on the same pixel simultaneously, the latest broadcast overwrites the older one.
-- **Operation batching:** Drawing data is chunked per path to prevent fragmented rendering.
-- **Undo Safety:** Undo affects only the initiator’s canvas unless explicitly synced (global undo mode optional).
-- **No Locking:** No region-level locks — free-form collaboration prioritized over precision control.
+- **Simultaneous Draws:**  
+  Each user draws locally while receiving others’ strokes asynchronously. Since canvas updates are additive, conflicts are minimal.
+
+- **Undo/Redo Conflicts:**  
+  Undo/Redo affect the **shared global history**, not per-user.  
+  When one user undoes a stroke, it reflects instantly across all clients — maintaining a **single source of truth**.
+
+- **Disconnections:**  
+  When all users disconnect, the server clears both history stacks to prevent stale state retention.
 
 ---
-
-## 🧩 Future Enhancements
-
-- Add persistent canvas storage via MongoDB or Redis.
-- Integrate user sessions & permissions.
-- Add export/download options.
-- Optimize WebSocket throughput via binary deltas instead of full image sync.
-
----
-
-
-
